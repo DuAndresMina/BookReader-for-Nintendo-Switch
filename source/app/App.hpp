@@ -1,6 +1,7 @@
 #pragma once
 #include "app/Worker.hpp"
 #include "config/Config.hpp"
+#include "notes/Annotations.hpp"
 #include "ui/Components.hpp"
 #include "ui/Gestures.hpp"
 #include "ui/OrientationTransform.hpp"
@@ -28,6 +29,7 @@ class App {
     bool webActive_ = false, showWebHelp_ = false, rescanPending_ = false;
     std::vector<FontSource> fonts_;
     Config config_;
+    NoteStore notes_;
     Settings settings_;
     ReaderView view_;
     std::string activePath_, message_, query_;
@@ -43,7 +45,9 @@ class App {
         Settings,
         Contents,
         Search,
-        Context
+        Context,
+        Notes,
+        NoteEditor
     };
     Screen screen_ = Screen::Home, returnScreen_ = Screen::Home;
     std::vector<std::string> filtered_;
@@ -64,6 +68,11 @@ class App {
     double tapDeadline_ = 0;
     int scrollTransition_ = 0;
     float scrollRemainder_ = 0;
+    int notesStart_ = 0, notesFocus_ = -1;
+    bool selecting_ = false, selectionTouchActive_ = false;
+    float selStartX_ = 0, selStartY_ = 0, selEndX_ = 0, selEndY_ = 0;
+    NoteAnchor noteAnchor_;
+    std::string editingNoteId_, noteDraft_, activeNoteId_;
     void draw();
     void drawLibrary();
     void drawReader();
@@ -71,6 +80,20 @@ class App {
     void drawContents();
     void drawSearch();
     void drawContext();
+    void drawNotes();
+    void drawNoteEditor();
+    void drawHighlights();
+    SDL_Rect pageScreenRect() const;
+    void startSelection();
+    void finishSelection(bool pageOnly = false);
+    void startNoteEditor(const NoteAnchor& anchor, const std::string& id,
+                         const std::string& text);
+    void commitNote();
+    void cancelNote();
+    void openNote(const Note& note);
+    Position anchorPosition(const NoteAnchor& anchor) const;
+    void editFocusedNote();
+    void deleteFocusedNote();
     void drawWebStatus();
     void toggleWebUpload();
     void pollWebServer();

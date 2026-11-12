@@ -16,7 +16,7 @@ struct ReaderView {
     uint64_t revision = 0;
 };
 struct Request {
-    enum Kind { Open, Page, Jump, Configure, Zoom, Close } kind = Page;
+    enum Kind { Open, Page, Jump, Configure, Zoom, Close, Locate } kind = Page;
     std::string path;
     Settings settings;
     Position position;

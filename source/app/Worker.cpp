@@ -112,6 +112,8 @@ void Worker::run() {
                     reader_->goToPage(reader_->getCurrentPage() + req.delta);
                 if (req.kind == Request::Jump)
                     reader_->goToPage(req.delta);
+                if (req.kind == Request::Locate)
+                    reader_->restore(req.position);
                 if (req.kind == Request::Configure) {
                     current = req.settings;
                     reader_->configure(current);

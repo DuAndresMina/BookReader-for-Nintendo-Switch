@@ -63,4 +63,14 @@ struct Book {
     Settings settings;
     bool hasSettings = false;
 };
+struct NoteRect {
+    float x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+};
+struct NoteAnchor {
+    int page = 0, chapter = 0;
+    uint64_t offset = 0;
+    float progress = 0;
+    bool fixed = false;
+    std::vector<NoteRect> rects;
+};
 } // namespace br

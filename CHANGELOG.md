@@ -8,6 +8,10 @@
   per-format limits and rescans the library after each upload.
 - `+` remains Settings; `−` on other screens still opens Settings.
 - English/Russian UI strings for the upload panel and notifications.
+- Page/region notes with rectangle highlights, a notes list, jump-to-page,
+  edit/delete and system-keyboard input; stored in `config/notes.ini`.
+- Notes work across PDF, EPUB, TXT, FB2, HTML and CBZ; formats without a text
+  layer use page/region notes instead of text-aware highlights.
 
 ## 0.2.0 — 2026-09-19
 

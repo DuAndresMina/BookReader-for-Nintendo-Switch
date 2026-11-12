@@ -19,7 +19,7 @@ static void onApplet(AppletHookType type, void*) {
         saveRequested = true;
 }
 #endif
-App::App() : config_(rootPath() + "/config/state.ini") {
+App::App() : config_(rootPath() + "/config/state.ini"), notes_(rootPath() + "/config/notes.ini") {
 }
 App::~App() {
     if (web_) {
@@ -66,6 +66,7 @@ int App::run() {
         throw std::runtime_error("Cannot create BookReader folders");
     config_.load();
     settings_ = config_.settings;
+    notes_.load();
     keyboardRussian_ = settings_.language == Language::Russian;
     fonts_ = discoverFonts(rootPath());
 #ifdef __SWITCH__
@@ -256,6 +257,8 @@ void App::updateList() {
 }
 void App::openBook(const std::string& p) {
     savePosition(true);
+    selecting_ = false;
+    activeNoteId_.clear();
     activePath_ = p;
     auto it = config_.books.find(p);
     Book b;
@@ -294,6 +297,8 @@ void App::openBook(const std::string& p) {
 }
 void App::closeBook() {
     savePosition(true);
+    selecting_ = false;
+    activeNoteId_.clear();
     Request r;
     r.kind = Request::Close;
     worker_->submit(r);
@@ -594,6 +599,19 @@ void App::search() {
 }
 void App::back() {
     message_.clear();
+    if (screen_ == Screen::NoteEditor) {
+        cancelNote();
+        return;
+    }
+    if (screen_ == Screen::Notes) {
+        setScreen(Screen::Home);
+        return;
+    }
+    if (screen_ == Screen::Reader && selecting_) {
+        selecting_ = false;
+        selectionTouchActive_ = false;
+        return;
+    }
     if (screen_ == Screen::Settings) {
         leaveSettings();
         return;
@@ -655,6 +673,55 @@ void App::key(SDL_Keycode k) {
             showSettings();
             return;
         }
+        return;
+    }
+    if (screen_ == Screen::NoteEditor) {
+        if (k == SDLK_RETURN) {
+            commitNote();
+            return;
+        }
+        if (k == SDLK_ESCAPE) {
+            cancelNote();
+            return;
+        }
+        if (k == SDLK_BACKSPACE && !noteDraft_.empty()) {
+            size_t i = noteDraft_.size() - 1;
+            while (i && ((noteDraft_[i] & 0xC0) == 0x80))
+                --i;
+            noteDraft_.erase(i);
+        }
+        return;
+    }
+    if (screen_ == Screen::Notes) {
+        if (k == SDLK_ESCAPE) {
+            setScreen(Screen::Home);
+            return;
+        }
+        if (k == SDLK_RETURN) {
+            activate();
+            return;
+        }
+        if (k == SDLK_x) {
+            editFocusedNote();
+            return;
+        }
+        if (k == SDLK_y) {
+            deleteFocusedNote();
+            return;
+        }
+        if (k == SDLK_DOWN || k == SDLK_RIGHT)
+            moveFocus(1);
+        if (k == SDLK_UP || k == SDLK_LEFT)
+            moveFocus(-1);
+        return;
+    }
+    if (screen_ == Screen::Reader && selecting_) {
+        if (k == SDLK_RETURN) {
+            finishSelection(true);
+            return;
+        }
+        if (k == SDLK_ESCAPE)
+            selecting_ = false;
         return;
     }
     if (k == SDLK_ESCAPE) {
@@ -721,6 +788,9 @@ void App::input(double now, float dt) {
             key(e.key.keysym.sym);
         if (screen_ == Screen::Search && e.type == SDL_TEXTINPUT && query_.size() < 240)
             query_ += e.text.text;
+        if (screen_ == Screen::NoteEditor && e.type == SDL_TEXTINPUT &&
+            noteDraft_.size() < 2000)
+            noteDraft_ += e.text.text;
         if (screen_ == Screen::Search && e.type == SDL_KEYDOWN &&
             e.key.keysym.sym == SDLK_BACKSPACE) {
             if (!query_.empty()) {
@@ -772,6 +842,22 @@ void App::input(double now, float dt) {
         down = 0;
         held = 0;
     }
+    if (selecting_) {
+        if (down & HidNpadButton_A) {
+            finishSelection(true);
+        } else if (down & HidNpadButton_B) {
+            selecting_ = false;
+            selectionTouchActive_ = false;
+        }
+        down = 0;
+        held = 0;
+    }
+    if (screen_ == Screen::Notes) {
+        if (down & HidNpadButton_X)
+            editFocusedNote();
+        if (down & HidNpadButton_Y)
+            deleteFocusedNote();
+    }
     if (down & HidNpadButton_A)
         activate();
     if (down & HidNpadButton_B)
@@ -780,7 +866,7 @@ void App::input(double now, float dt) {
         overlay_ = !overlay_;
         focus_ = 0;
     }
-    if (down & HidNpadButton_Y)
+    if (down & HidNpadButton_Y && screen_ != Screen::Notes)
         toggleFavorite(screen_ == Screen::Reader ? activePath_ : contextPath_);
     if (down & HidNpadButton_Minus) {
         if (screen_ == Screen::Home)
@@ -864,6 +950,26 @@ void App::input(double now, float dt) {
         auto logical = OrientationTransform(settings_.orientation).physicalToLogical({p.x, p.y});
         p.x = logical.x;
         p.y = logical.y;
+    }
+    if (selecting_ && screen_ == Screen::Reader && !overlay_) {
+        if (!touches.empty()) {
+            auto p = touches.front();
+            if (!selectionTouchActive_) {
+                selectionTouchActive_ = true;
+                selStartX_ = selEndX_ = p.x;
+                selStartY_ = selEndY_ = p.y;
+            } else {
+                selEndX_ = p.x;
+                selEndY_ = p.y;
+            }
+            return;
+        }
+        if (selectionTouchActive_) {
+            selectionTouchActive_ = false;
+            finishSelection(false);
+            return;
+        }
+        return;
     }
     bool drag =
         screen_ == Screen::Settings || (screen_ == Screen::Reader && view_.fixed && zoom_ > 1.05f);
@@ -989,6 +1095,12 @@ void App::draw() {
         break;
     case Screen::Context:
         drawContext();
+        break;
+    case Screen::Notes:
+        drawNotes();
+        break;
+    case Screen::NoteEditor:
+        drawNoteEditor();
         break;
     default:
         drawLibrary();

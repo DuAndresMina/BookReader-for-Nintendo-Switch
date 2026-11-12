@@ -13,7 +13,7 @@ build-host/BookReader: $(OBJECTS)
 build-host/%.o: source/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
-CORE := $(filter-out build-host/main.o build-host/app/App.o build-host/ui/LibraryScreen.o build-host/ui/ReaderScreen.o build-host/ui/SettingsScreen.o,$(OBJECTS))
+CORE := $(filter-out build-host/main.o build-host/app/App.o build-host/ui/LibraryScreen.o build-host/ui/ReaderScreen.o build-host/ui/SettingsScreen.o build-host/ui/NotesScreen.o,$(OBJECTS))
 test: build-host/tests
 	./build-host/tests
 build-host/tests: tests/test_main.cpp $(CORE)

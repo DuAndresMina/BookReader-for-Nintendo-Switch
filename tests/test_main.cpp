@@ -1,5 +1,6 @@
 #include "app/Worker.hpp"
 #include "config/Config.hpp"
+#include "notes/Annotations.hpp"
 #include "readers/BookFactory.hpp"
 #include "storage/Library.hpp"
 #include "ui/Gestures.hpp"
@@ -152,6 +153,33 @@ int main() {
             std::ofstream(rootPath() + "/config/state.ini") << "truncated";
             CHECK(restored.load());
             CHECK(restored.lastBook == b.path);
+        }
+        {
+            NoteStore store(rootPath() + "/config/notes.ini");
+            NoteAnchor anchor;
+            anchor.page = 7;
+            anchor.chapter = 2;
+            anchor.offset = 12345;
+            anchor.progress = .42f;
+            anchor.fixed = false;
+            anchor.rects.push_back({.1f, .2f, .3f, .4f});
+            auto id = store.add("sdmc:/switch/BookReader/books/book.epub", "Libro",
+                                "Nota con ñ y\nlínea", anchor);
+            CHECK(!id.empty());
+            CHECK(store.all().size() == 1);
+            CHECK(store.save());
+            NoteStore restored(rootPath() + "/config/notes.ini");
+            CHECK(restored.load());
+            CHECK(restored.all().size() == 1);
+            auto note = restored.all().front();
+            CHECK(note.id == id);
+            CHECK(note.anchor.page == 7 && note.anchor.offset == 12345);
+            CHECK(std::abs(note.anchor.progress - .42f) < .001f);
+            CHECK(note.anchor.rects.size() == 1);
+            CHECK(note.text.find("línea") != std::string::npos);
+            CHECK(restored.update(id, "updated", anchor));
+            CHECK(restored.remove(id));
+            CHECK(restored.all().empty());
         }
         {
             Gestures g;

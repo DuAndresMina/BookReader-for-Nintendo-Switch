@@ -37,6 +37,7 @@ devkitPro MuPDF port. It does not use Nintendo SDK APIs or require a network con
 - EPUB cover extraction and first-page thumbnails for other formats
 - Bounded memory and disk caches designed for Switch homebrew constraints
 - **Wi-Fi upload** from a phone or PC browser (press `−` in the home screen)
+- **Notes and highlights** with a notes list that jumps back to the exact page
 
 ## Web upload
 
@@ -56,6 +57,21 @@ Press **`−`** again to stop the server.
 
 The server has no password and is meant for a trusted local network. Stop it
 when you are done.
+
+## Notes
+
+Open the reader menu with **X**, then choose **Add note**. Drag over a paragraph
+to highlight a region, or press **A** (Switch) / **Enter** (PC) to note the whole
+page. The note text is entered with the system keyboard on Switch.
+
+Open **Notes** from the home screen to see every note. **A** opens the book at
+the stored page, **X** edits and **Y** deletes.
+
+Notes and rectangle highlights work for PDF, EPUB, TXT, FB2, HTML and CBZ.
+Scanned PDFs and CBZ have no text layer, so they use region/page notes rather
+than text-aware highlights. EPUB page numbers can change with font size; notes
+keep the page, chapter, byte offset and progress so they can be found again.
+Notes are stored in `config/notes.ini`.
 
 ## Supported formats
 

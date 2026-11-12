@@ -1,6 +1,7 @@
 #include "app/App.hpp"
 #include "utils/Files.hpp"
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
@@ -228,6 +229,68 @@ class AppTest {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         waitBook(a);
         frame(a);
+        auto tapButton = [&](const std::string& label) {
+            frame(a);
+            auto it = std::find_if(a.ui_->buttons.begin(), a.ui_->buttons.end(),
+                                   [&](auto& b) { return b.label == label; });
+            REQUIRE(it != a.ui_->buttons.end());
+            REQUIRE(a.ui_->tap(it->rect.x + it->rect.w * .5f, it->rect.y + it->rect.h * .5f));
+        };
+        // Notes: select a rectangle in the current book, write a note, and jump
+        // back to it from the Notes screen.
+        a.overlay_ = true;
+        tapButton("Добавить заметку");
+        REQUIRE(a.selecting_);
+        auto page = a.pageScreenRect();
+        a.touchSuppressed_ = false;
+        contact(a, SDL_MOUSEBUTTONDOWN,
+                transform.logicalToPhysical({float(page.x + page.w * .2f),
+                                             float(page.y + page.h * .2f)}));
+        contact(a, SDL_MOUSEMOTION,
+                transform.logicalToPhysical({float(page.x + page.w * .6f),
+                                             float(page.y + page.h * .45f)}));
+        contact(a, SDL_MOUSEBUTTONUP,
+                transform.logicalToPhysical({float(page.x + page.w * .6f),
+                                             float(page.y + page.h * .45f)}));
+        REQUIRE(a.screen_ == App::Screen::NoteEditor);
+        {
+            SDL_Event text{};
+            text.type = SDL_TEXTINPUT;
+            std::strcpy(text.text.text, "nota de prueba");
+            SDL_PushEvent(&text);
+            a.input(monotonic(), .016f);
+        }
+        a.key(SDLK_RETURN);
+        REQUIRE(a.notes_.notes().size() == 1);
+        REQUIRE(a.screen_ == App::Screen::Reader);
+        REQUIRE(!a.activeNoteId_.empty());
+        a.message_.clear();
+        // A page note without a rectangle.
+        a.overlay_ = true;
+        tapButton("Добавить заметку");
+        REQUIRE(a.selecting_);
+        a.key(SDLK_RETURN);
+        REQUIRE(a.screen_ == App::Screen::NoteEditor);
+        {
+            SDL_Event text{};
+            text.type = SDL_TEXTINPUT;
+            std::strcpy(text.text.text, "nota de pagina");
+            SDL_PushEvent(&text);
+            a.input(monotonic(), .016f);
+        }
+        a.key(SDLK_RETURN);
+        REQUIRE(a.notes_.notes().size() == 2);
+        a.message_.clear();
+        a.setScreen(App::Screen::Home);
+        tapButton("Заметки");
+        REQUIRE(a.screen_ == App::Screen::Notes);
+        frame(a);
+        REQUIRE(a.ui_->buttons.size() >= 2);
+        auto noteRow = a.ui_->buttons[1].rect;
+        REQUIRE(a.ui_->tap(noteRow.x + 50.f, noteRow.y + 40.f));
+        waitBook(a);
+        REQUIRE(a.screen_ == App::Screen::Reader);
+        REQUIRE(!a.activeNoteId_.empty());
         a.closeBook();
         a.savePosition(true);
         Config reloaded(std::string(temp) + "/config/state.ini");

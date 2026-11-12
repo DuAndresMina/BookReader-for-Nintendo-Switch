@@ -37,6 +37,10 @@ void App::drawLibrary() {
         });
         u.button({305, 314, 245, 64}, tr("Settings"), [this] { showSettings(); });
         u.button({40, height() - 90, 245, 60}, tr("Exit"), [this] { running_ = false; });
+        u.button({305, height() - 90, 245, 60}, tr("Notes"), [this] {
+            setScreen(Screen::Notes);
+            notesStart_ = 0;
+        });
         int recentX = settings_.orientation ? 40 : 620, recentY = settings_.orientation ? 440 : 134;
         u.text(tr("RECENT BOOKS"), recentX, recentY, 24, u.colors.muted);
         std::vector<Book> recent;

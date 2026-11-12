@@ -113,7 +113,21 @@ std::string tr(const std::string& key, Language language) {
         {"Web server could not start", "Не удалось запустить сервер"},
         {"Connect to Wi-Fi first", "Сначала подключитесь к Wi-Fi"},
         {"Port 8080 is already in use", "Порт 8080 уже занят"},
-        {"Uploaded", "Загружено"}};
+        {"Uploaded", "Загружено"},
+        {"Notes", "Заметки"},
+        {"Add note", "Добавить заметку"},
+        {"Note", "Заметка"},
+        {"Save", "Сохранить"},
+        {"Cancel", "Отмена"},
+        {"No notes", "Заметок нет"},
+        {"Highlight", "Выделение"},
+        {"Note saved", "Заметка сохранена"},
+        {"Note deleted", "Заметка удалена"},
+        {"Cannot save notes", "Не удалось сохранить заметки"},
+        {"Write your note", "Введите заметку"},
+        {"Drag to select a paragraph · A: page note · B: cancel",
+         "Выделите абзац · A: заметка на странице · B: отмена"},
+        {"X: edit · Y: delete", "X: изменить · Y: удалить"}};
     if (language == Language::Russian) {
         auto i = ru.find(key);
         if (i != ru.end())

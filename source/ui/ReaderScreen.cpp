@@ -24,6 +24,23 @@ void App::drawReader() {
         }
     }
 
+    drawHighlights();
+    if (selecting_) {
+        int x0 = int(std::min(selStartX_, selEndX_)), y0 = int(std::min(selStartY_, selEndY_));
+        int x1 = int(std::max(selStartX_, selEndX_)), y1 = int(std::max(selStartY_, selEndY_));
+        if (x1 > x0 && y1 > y0) {
+            u.rect({x0, y0, x1 - x0, y1 - y0}, {255, 214, 10, 55});
+            SDL_Rect border{x0, y0, x1 - x0, y1 - y0};
+            SDL_SetRenderDrawColor(renderer_, u.colors.accent.r, u.colors.accent.g,
+                                   u.colors.accent.b, 255);
+            SDL_RenderDrawRect(renderer_, &border);
+        }
+        u.rect({0, 0, width(), 46}, u.colors.panel);
+        u.text(tr("Drag to select a paragraph · A: page note · B: cancel"), 20, 11, 20,
+               u.colors.text, width() - 40);
+        return;
+    }
+
     if (!overlay_)
         return;
     u.rect({0, 0, width(), height()},
@@ -70,7 +87,7 @@ void App::drawReader() {
     });
     u.button(control(4), tr("Previous"), [this] { navigate(-1); });
     u.button(control(5), tr("Next"), [this] { navigate(1); });
-    u.button(control(6), tr("Favorite"), [this] { toggleFavorite(activePath_); });
+    u.button(control(6), tr("Add note"), [this] { startSelection(); });
     u.button(control(7), tr("Settings"), [this] { showSettings(); });
     int resumeY = settings_.orientation ? 622 : 406;
     u.button({40, resumeY, width() - 80, 64}, tr("Resume reading"), [this] { overlay_ = false; });

@@ -4,7 +4,7 @@ APP_TITLE := BookReader
 APP_AUTHOR := Homebrew
 APP_VERSION := 0.2.0
 BUILD := build
-SOURCES := source source/app source/ui source/readers source/render source/storage source/config source/utils source/net
+SOURCES := source source/app source/ui source/readers source/render source/storage source/config source/utils source/net source/notes
 
 ifeq ($(MAKECMDGOALS),clean)
 .PHONY: clean
